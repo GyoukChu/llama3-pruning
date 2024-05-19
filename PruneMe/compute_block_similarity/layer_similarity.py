@@ -25,14 +25,15 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # if resource is a problem
-    quantization_config = BitsAndBytesConfig(load_in_4bit=True,
-                                            bnb_4bit_use_double_quant=True,
-                                            bnb_4bit_quant_type="nf4",
-                                            bnb_4bit_compute_dtype=torch.bfloat16)
+    # quantization_config = BitsAndBytesConfig(load_in_4bit=True,
+    #                                         bnb_4bit_use_double_quant=True,
+    #                                         bnb_4bit_quant_type="nf4",
+    #                                         bnb_4bit_compute_dtype=torch.bfloat16)
     
-    model = AutoModelForCausalLM.from_pretrained(model_path,  
+    model = AutoModelForCausalLM.from_pretrained(model_path,
+                                                 torch_dtype = torch.bfloat16, # new
                                                  device_map="auto", 
-                                                 quantization_config=quantization_config, 
+                                                 # quantization_config=quantization_config, 
                                                  output_hidden_states=True)
     
     tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -42,11 +43,11 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
 
     model.eval()
 
-    dataset = datasets.load_dataset(dataset, split=dataset_subset)
+    dataset = datasets.load_dataset(dataset, split=dataset_subset, streaming=True)
     if dataset_size:
-        dataset = dataset.select(range(dataset_size))
+        dataset = dataset.take(dataset_size)
 
-    dataloader = DataLoader(dataset[dataset_column], batch_size=batch_size, shuffle=False, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=True)
 
     # Initialize a list to store distances for each block across the dataset
     all_distances = [[] for _ in range(model.config.num_hidden_layers - layers_to_skip)]
@@ -55,6 +56,7 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
     all_distances_8 = [[] for _ in range(model.config.num_hidden_layers - layers_to_skip*8)]
 
     for batch in tqdm(dataloader, desc="Processing batches"):
+        batch = batch[dataset_column]
         inputs = tokenizer(batch, return_tensors="pt", padding="longest", max_length=max_length, truncation=True).to(device)
         with torch.no_grad():
             outputs = model(**inputs)
