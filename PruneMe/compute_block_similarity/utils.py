@@ -6,7 +6,12 @@ def angular_distance(x_l, x_l_plus_n) -> torch.Tensor:
     x_l_norm = x_l / torch.norm(x_l, dim=-1, keepdim=True)
     x_l_plus_n_norm = x_l_plus_n / torch.norm(x_l_plus_n, dim=-1, keepdim=True)
     cosine_similarity = (x_l_norm * x_l_plus_n_norm).sum(-1)
+    # Distance 1
+    # Gromov, Andrey, et al. "The unreasonable ineffectiveness of the deeper layers."
     return torch.acos(cosine_similarity.clamp(min=-1, max=1)) / torch.pi
+    # Distance 2
+    # Men, Xin, et al. "Shortgpt: Layers in large language models are more redundant than you expect."
+    # return 1 - cosine_similarity.clamp(min=-1, max=1)
 
 def compute_block_distances(hidden_states: List[torch.Tensor], layers_to_skip: int) -> List[float]:
     """Compute and return angular distances for each block of layers."""

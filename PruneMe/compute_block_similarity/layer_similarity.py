@@ -50,7 +50,9 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
 
     # Initialize a list to store distances for each block across the dataset
     all_distances = [[] for _ in range(model.config.num_hidden_layers - layers_to_skip)]
-
+    all_distances_2 = [[] for _ in range(model.config.num_hidden_layers - layers_to_skip*2)]
+    all_distances_4 = [[] for _ in range(model.config.num_hidden_layers - layers_to_skip*4)]
+    all_distances_8 = [[] for _ in range(model.config.num_hidden_layers - layers_to_skip*8)]
 
     for batch in tqdm(dataloader, desc="Processing batches"):
         inputs = tokenizer(batch, return_tensors="pt", padding="longest", max_length=max_length, truncation=True).to(device)
@@ -72,9 +74,21 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
         distances = compute_block_distances(last_non_padded_hidden_states, layers_to_skip)
         for i, distance in enumerate(distances):
             all_distances[i].append(distance)
+        distances_2 = compute_block_distances(last_non_padded_hidden_states, layers_to_skip*2)
+        for i, distance_2 in enumerate(distances_2): 
+            all_distances_2[i].append(distance_2)
+        distances_4 = compute_block_distances(last_non_padded_hidden_states, layers_to_skip*4)
+        for i, distance_4 in enumerate(distances_4): 
+            all_distances_4[i].append(distance_4)
+        distances_8 = compute_block_distances(last_non_padded_hidden_states, layers_to_skip*8)
+        for i, distance_8 in enumerate(distances_8): 
+            all_distances_8[i].append(distance_8)
 
     # Calculate average distances for each block
     average_distances = [np.mean(block_distances) for block_distances in all_distances]
+    average_distances_2 = [np.mean(block_distances) for block_distances in all_distances_2]
+    average_distances_4 = [np.mean(block_distances) for block_distances in all_distances_4]
+    average_distances_8 = [np.mean(block_distances) for block_distances in all_distances_8]
 
     # Write the average distances to a CSV file and compute the minimum average distance
     min_distance = float('inf')  # Initialize with infinity
@@ -99,6 +113,86 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
     # Log the layer with the minimum average distance
     logging.info(f"Layer {min_distance_layer} to {min_distance_layer + layers_to_skip} has the minimum average distance of {min_distance}. Consider examining this layer more closely for potential optimization or removal.")
     logging.info("Layer distances written to layer_distances.csv")
+
+    # Once more - for _2
+    # Write the average distances to a CSV file and compute the minimum average distance
+    min_distance_2 = float('inf')  # Initialize with infinity
+    min_distance_layer_2 = 0  # Initialize with an impossible value
+
+    with open('layer_distances_2.csv', 'w', newline='') as csvfile:
+        fieldnames = ['block_start', 'block_end', 'average_distance']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for i, avg_dist in enumerate(average_distances_2):
+            # Write each row to the CSV
+            writer.writerow({
+                'block_start': i + 1,  # layer indices are 1-based in the paper
+                'block_end': i + 1 + layers_to_skip*2,
+                'average_distance': avg_dist
+            })
+            
+            if avg_dist < min_distance_2:
+                min_distance_2 = avg_dist
+                min_distance_layer_2 = i + 1
+    
+    # Once more - for _2
+    # Log the layer with the minimum average distance
+    logging.info(f"Layer {min_distance_layer_2} to {min_distance_layer_2 + layers_to_skip*2} has the minimum average distance of {min_distance_2}. Consider examining this layer more closely for potential optimization or removal.")
+    logging.info("Layer distances written to layer_distances_2.csv")
+
+    # Once more - for _4
+    # Write the average distances to a CSV file and compute the minimum average distance
+    min_distance_4 = float('inf')  # Initialize with infinity
+    min_distance_layer_4 = 0  # Initialize with an impossible value
+
+    with open('layer_distances_4.csv', 'w', newline='') as csvfile:
+        fieldnames = ['block_start', 'block_end', 'average_distance']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for i, avg_dist in enumerate(average_distances_4):
+            # Write each row to the CSV
+            writer.writerow({
+                'block_start': i + 1,  # layer indices are 1-based in the paper
+                'block_end': i + 1 + layers_to_skip*4,
+                'average_distance': avg_dist
+            })
+            
+            if avg_dist < min_distance_4:
+                min_distance_4 = avg_dist
+                min_distance_layer_4 = i + 1
+    
+    # Once more - for _4
+    # Log the layer with the minimum average distance
+    logging.info(f"Layer {min_distance_layer_4} to {min_distance_layer_4 + layers_to_skip*4} has the minimum average distance of {min_distance_4}. Consider examining this layer more closely for potential optimization or removal.")
+    logging.info("Layer distances written to layer_distances_4.csv")
+
+    # Once more - for _8
+    # Write the average distances to a CSV file and compute the minimum average distance
+    min_distance_8 = float('inf')  # Initialize with infinity
+    min_distance_layer_8 = 0  # Initialize with an impossible value
+
+    with open('layer_distances_8.csv', 'w', newline='') as csvfile:
+        fieldnames = ['block_start', 'block_end', 'average_distance']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for i, avg_dist in enumerate(average_distances_8):
+            # Write each row to the CSV
+            writer.writerow({
+                'block_start': i + 1,  # layer indices are 1-based in the paper
+                'block_end': i + 1 + layers_to_skip*8,
+                'average_distance': avg_dist
+            })
+            
+            if avg_dist < min_distance_8:
+                min_distance_8 = avg_dist
+                min_distance_layer_8 = i + 1
+    
+    # Once more - for _8
+    # Log the layer with the minimum average distance
+    logging.info(f"Layer {min_distance_layer_8} to {min_distance_layer_8 + layers_to_skip*8} has the minimum average distance of {min_distance_8}. Consider examining this layer more closely for potential optimization or removal.")
+    logging.info("Layer distances written to layer_distances_8.csv")
+
+
 
 
 if __name__ == "__main__":
