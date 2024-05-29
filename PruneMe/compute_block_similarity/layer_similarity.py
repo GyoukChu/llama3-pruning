@@ -43,7 +43,7 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
 
     model.eval()
 
-    dataset = datasets.load_dataset(dataset, split=dataset_subset, streaming=True)
+    dataset = datasets.load_dataset(dataset, 'en', split=dataset_subset, streaming=True)
     if dataset_size:
         dataset = dataset.take(dataset_size)
 
